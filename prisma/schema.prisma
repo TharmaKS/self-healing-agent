@@ -1,0 +1,296 @@
+// Prisma schema for Intent-Based Enterprise Automation Platform
+// Persistent source of truth for MySQL database
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Application {
+  id                  String   @id @default(uuid())
+  name                String   @unique
+  description         String?  @db.Text
+  applicationType     String   @default("UI") @map("application_type") // UI, API
+  baseUrl             String   @map("base_url")
+  loginUrl            String?  @map("login_url")
+  authType            String   @default("BROWSER_SESSION") @map("auth_type")
+  apiAuthType         String?  @map("api_auth_type")
+  environment         String   @default("STAGING")
+  usernameEnvVar      String?  @map("username_env_var")
+  passwordEnvVar      String?  @map("password_env_var")
+  apiKeyEnvVar        String?  @map("api_key_env_var")
+  clientIdEnvVar      String?  @map("client_id_env_var")
+  clientSecretEnvVar  String?  @map("client_secret_env_var")
+  credentialKeys      String   @default("[]") @map("credential_keys")
+  isActive            Boolean  @default(true) @map("is_active")
+  browserConfig       String   @default("{}") @map("browser_config")
+  supportedMechanisms String   @default("[\"PLAYWRIGHT_CHROMIUM\"]") @map("supported_mechanisms")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  sessions            ApplicationSession[]
+  capabilities        SemanticCapability[]
+  flows               BusinessFlow[]
+  executions          Execution[]
+  buildSessions       WorkflowBuildSession[]
+  experience          ExperienceMemory[]
+
+  @@map("applications")
+}
+
+model ApplicationSession {
+  id              String   @id @default(uuid())
+  applicationId   String   @map("application_id")
+  application     Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  browserId       String?  @map("browser_id")
+  contextId       String?  @map("context_id")
+  pageId          String?  @map("page_id")
+  status          String   @default("CREATED") // CREATED, LAUNCHING, ACTIVE, AUTHENTICATING, AUTHENTICATED, FAILED, CLOSED, EXPIRED
+  currentUrl      String?  @map("current_url")
+  authenticatedAs String?  @map("authenticated_as")
+  startedAt       DateTime @default(now()) @map("started_at")
+  lastActivityAt  DateTime @default(now()) @map("last_activity_at")
+  metadata        String   @default("{}")
+
+  executions      Execution[]
+
+  @@map("application_sessions")
+}
+
+model WorkflowBuildSession {
+  id                    String   @id @default(uuid())
+  workflowName          String   @default("") @map("workflow_name")
+  description           String?  @db.Text
+  applicationId         String?  @map("application_id")
+  application           Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  currentState          String   @default("ASK_WORKFLOW_NAME") @map("current_state")
+  confirmedCapabilities String   @db.Text @map("confirmed_capabilities") // JSON array
+  confirmedSteps        String   @db.Text @map("confirmed_steps") // JSON array
+  variables             String   @db.Text
+  messages              String   @db.LongText // JSON array of ChatMessage
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  @@map("workflow_build_sessions")
+}
+
+model SemanticCapability {
+  id                     String   @id @default(uuid())
+  applicationId          String   @map("application_id")
+  application            Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  businessName           String   @map("business_name")
+  type                   String   // ENTER, CLICK, TOGGLE, SELECT, EXTRACT, ASSERT, TABLE_OPERATION
+  pageContext            String?  @map("page_context")
+  semanticDescription    String   @db.Text @map("semantic_description")
+  targetDefinition       String   @db.Text @map("target_definition")
+  inputDefinition        String   @db.Text @map("input_definition")
+  outputDefinition       String   @db.Text @map("output_definition")
+  verificationDefinition String   @db.Text @map("verification_definition")
+  recoveryDefinition     String   @db.Text @map("recovery_definition")
+  riskLevel              String   @default("LOW") @map("risk_level") // LOW, MEDIUM, HIGH, CRITICAL
+  version                Int      @default(1)
+  isPublished            Boolean  @default(true) @map("is_published")
+  isRetired              Boolean  @default(false) @map("is_retired")
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+
+  versions               CapabilityVersion[]
+  experience             ExperienceMemory[]
+
+  @@map("semantic_capabilities")
+}
+
+model CapabilityVersion {
+  id           String   @id @default(uuid())
+  capabilityId String   @map("capability_id")
+  capability   SemanticCapability @relation(fields: [capabilityId], references: [id], onDelete: Cascade)
+  version      Int
+  definition   String   @db.Text
+  changelog    String?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("capability_versions")
+}
+
+model BusinessFlow {
+  id               String   @id @default(uuid())
+  applicationId    String   @map("application_id")
+  application      Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  name             String
+  description      String?  @db.Text
+  status           String   @default("DRAFT") // DRAFT, TEST, APPROVED, PRODUCTION, RETIRED
+  version          Int      @default(1)
+  latestTestStatus String?  @map("latest_test_status") // PENDING, SUCCESS, FAILED
+  graphDefinition  String   @db.LongText @map("graph_definition") // JSON: nodes & edges
+  variables        String   @db.Text // JSON: flow input/output variables
+  failurePolicy    String   @default("CONTINUE") @map("failure_policy") // CONTINUE, STOP, RETRY, HUMAN_REVIEW
+  isRetired        Boolean  @default(false) @map("is_retired")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  versions         BusinessFlowVersion[]
+  executions       Execution[]
+
+  @@map("business_flows")
+}
+
+model BusinessFlowVersion {
+  id          String   @id @default(uuid())
+  flowId      String   @map("flow_id")
+  flow        BusinessFlow @relation(fields: [flowId], references: [id], onDelete: Cascade)
+  version     Int
+  graphData   String   @db.LongText @map("graph_data")
+  publishedBy String?  @map("published_by")
+  status      String   @default("DRAFT")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("business_flow_versions")
+}
+
+model Execution {
+  id                   String   @id @default(uuid())
+  flowId               String   @map("flow_id")
+  flow                 BusinessFlow @relation(fields: [flowId], references: [id], onDelete: Cascade)
+  applicationId        String   @map("application_id")
+  application          Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  applicationSessionId String?  @map("application_session_id")
+  applicationSession   ApplicationSession? @relation(fields: [applicationSessionId], references: [id], onDelete: SetNull)
+  status               String   @default("PENDING") // PENDING, RUNNING, COMPLETED, FAILED, PAUSED, STOPPED
+  mode                 String   @default("RUN") // TEST, RUN
+  startedAt            DateTime @default(now()) @map("started_at")
+  completedAt          DateTime? @map("completed_at")
+  durationMs           Int?     @map("duration_ms")
+  matchedCount         Int      @default(0) @map("matched_count")
+  processedCount       Int      @default(0) @map("processed_count")
+  successCount         Int      @default(0) @map("success_count")
+  failedCount          Int      @default(0) @map("failed_count")
+  skippedCount         Int      @default(0) @map("skipped_count")
+  recoveryCount        Int      @default(0) @map("recovery_count")
+  remappingCount       Int      @default(0) @map("remapping_count")
+  interventionCount    Int      @default(0) @map("intervention_count")
+  error                String?  @db.Text
+  csvReportPath        String?  @map("csv_report_path")
+  snapshot             String   @db.LongText
+
+  steps                ExecutionStep[]
+  rowResults           RowExecutionResult[]
+  interventions        HumanIntervention[]
+  reports              BatchReport[]
+
+  @@map("executions")
+}
+
+model ExecutionStep {
+  id                String   @id @default(uuid())
+  executionId       String   @map("execution_id")
+  execution         Execution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+  capabilityId      String?  @map("capability_id")
+  stepIndex         Int      @map("step_index")
+  stepName          String   @map("step_name")
+  status            String   // RUNNING, SUCCESS, FAILED, SKIPPED, RECOVERED
+  inputData         String   @db.Text @map("input_data")
+  outputData        String   @db.Text @map("output_data")
+  resolvedTarget    String?  @db.Text @map("resolved_target")
+  confidence        Float?
+  verificationState String?  @map("verification_state") // PASSED, FAILED, UNKNOWN
+  error             String?  @db.Text
+  startedAt         DateTime @default(now()) @map("started_at")
+  completedAt       DateTime? @map("completed_at")
+  durationMs        Int?     @map("duration_ms")
+
+  @@map("execution_steps")
+}
+
+model RowExecutionResult {
+  id                 String   @id @default(uuid())
+  executionId        String   @map("execution_id")
+  execution          Execution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+  rowId              String   @map("row_id")
+  claimId            String?  @map("claim_id")
+  payer              String?
+  initialStatus      String?  @map("initial_status")
+  finalStatus        String?  @map("final_status")
+  result             String   // SUCCESS, FAILED, SKIPPED
+  verificationResult String   @map("verification_result") // PASSED, FAILED, UNKNOWN
+  recoveryAttempted  Boolean  @default(false) @map("recovery_attempted")
+  recoveryResult     String?  @map("recovery_result") // NONE, RECOVERED, FAILED, REMAP_CONFIRMED
+  remappingRequired  Boolean  @default(false) @map("remapping_required")
+  remappingConfirmed Boolean  @default(false) @map("remapping_confirmed")
+  referenceNumber    String?  @map("reference_number")
+  errorCode          String?  @map("error_code")
+  errorMessage       String?  @db.Text @map("error_message")
+  startedAt          DateTime @default(now()) @map("started_at")
+  completedAt        DateTime? @map("completed_at")
+  durationMs         Int?     @map("duration_ms")
+
+  @@map("row_execution_results")
+}
+
+model HumanIntervention {
+  id             String   @id @default(uuid())
+  executionId    String   @map("execution_id")
+  execution      Execution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+  rowId          String?  @map("row_id")
+  type           String   // CONFIRM_MAPPING, SELECT_TARGET, APPROVE_ACTION, RETRY, SKIP_ROW, STOP_BATCH
+  expectedIntent String   @map("expected_intent")
+  candidates     String   @db.Text
+  status         String   @default("PENDING") // PENDING, RESOLVED, DISMISSED, TIMED_OUT
+  selectedTarget String?  @db.Text @map("selected_target")
+  resolutionNote String?  @map("resolution_note")
+  createdAt      DateTime @default(now()) @map("created_at")
+  resolvedAt     DateTime? @map("resolved_at")
+
+  @@map("human_interventions")
+}
+
+model ExperienceMemory {
+  id               String   @id @default(uuid())
+  applicationId    String   @map("application_id")
+  application      Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  capabilityId     String?  @map("capability_id")
+  capability       SemanticCapability? @relation(fields: [capabilityId], references: [id], onDelete: SetNull)
+  pageContext      String   @map("page_context")
+  originalTarget   String   @db.Text @map("original_target")
+  resolvedTarget   String   @db.Text @map("resolved_target")
+  resolutionMethod String   @map("resolution_method") // HUMAN_CONFIRMATION, HIGH_CONFIDENCE_SEMANTIC, POLICY_APPROVED
+  confidence       Float
+  successCount     Int      @default(1) @map("success_count")
+  failureCount     Int      @default(0) @map("failure_count")
+  isEnabled        Boolean  @default(true) @map("is_enabled")
+  lastVerifiedAt   DateTime @default(now()) @map("last_verified_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@map("experience_memory")
+}
+
+model BatchReport {
+  id          String   @id @default(uuid())
+  executionId String   @map("execution_id")
+  execution   Execution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+  fileName    String   @map("file_name")
+  csvContent  String   @db.MediumText @map("csv_content")
+  totalRows   Int      @map("total_rows")
+  successRows Int      @map("success_rows")
+  failedRows  Int      @map("failed_rows")
+  skippedRows Int      @map("skipped_rows")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("reports")
+}
+
+model AuditEvent {
+  id         String   @id @default(uuid())
+  eventType  String   @map("event_type")
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id")
+  actor      String   @default("SYSTEM")
+  details    String   @db.Text
+  timestamp  DateTime @default(now())
+
+  @@map("audit_events")
+}

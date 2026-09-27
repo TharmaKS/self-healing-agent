@@ -1,0 +1,75 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    background:
+      radial-gradient(1200px 600px at 0% -10%, rgba(79, 70, 229, 0.14), transparent 50%),
+      radial-gradient(900px 500px at 100% 0%, rgba(14, 165, 233, 0.08), transparent 45%),
+      #070b12;
+    color: #e8eef8;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    letter-spacing: -0.011em;
+  }
+
+  code, pre, kbd {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+}
+
+@layer components {
+  .page-shell {
+    @apply p-6 max-w-6xl mx-auto space-y-6;
+  }
+
+  .page-title {
+    @apply text-xl font-semibold text-white tracking-tight;
+  }
+
+  .page-sub {
+    @apply text-xs text-slate-400 mt-1 leading-relaxed;
+  }
+
+  .surface {
+    @apply rounded-2xl border border-white/10 bg-slate-900/50 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset];
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-sm shadow-indigo-950/40 transition;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-slate-900/80 hover:bg-slate-800 text-slate-200 text-xs font-medium border border-white/10 transition;
+  }
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #243044;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+  background-clip: padding-box;
+}
+
+.react-flow {
+  background-color: #070b12;
+}
+.react-flow__controls-button {
+  background: #0f172a !important;
+  border-bottom: 1px solid #1e293b !important;
+  fill: #e2e8f0 !important;
+}
+.react-flow__minimap {
+  background: #0f172a !important;
+}

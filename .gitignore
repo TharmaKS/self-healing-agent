@@ -1,0 +1,12 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+data/chrome-profile/
+data/agent-chromium-profile/
+data/browser-cdp.json
+data/obs-shots/

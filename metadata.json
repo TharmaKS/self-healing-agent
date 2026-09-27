@@ -1,0 +1,6 @@
+{
+  "name": "Intent-Based Enterprise Automation Platform",
+  "description": "Enterprise-grade, intent-driven, MySQL-backed automation agent with semantic capability learning, live observation, deterministic state machine, and verified outcomes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

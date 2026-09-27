@@ -1,0 +1,1120 @@
+{
+  "applications": [
+    {
+      "id": "app-claims-portal",
+      "name": "Claims Portal",
+      "description": "Enterprise healthcare claims management and payer dispatch portal",
+      "baseUrl": "http://localhost:3000/api/portal",
+      "loginUrl": "http://localhost:3000/api/portal/login",
+      "authType": "BROWSER_SESSION",
+      "environment": "STAGING",
+      "credentialKeys": [
+        "CLAIMS_USERNAME",
+        "CLAIMS_PASSWORD"
+      ],
+      "isActive": true,
+      "browserConfig": {
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        },
+        "headed": true,
+        "timeoutMs": 30000
+      },
+      "supportedMechanisms": [
+        "PLAYWRIGHT_CHROMIUM",
+        "INTERACTIVE_BROWSER_SESSION"
+      ],
+      "createdAt": "2026-09-25T17:26:33.741Z",
+      "updatedAt": "2026-09-25T17:26:33.741Z"
+    }
+  ],
+  "sessions": [],
+  "capabilities": [
+    {
+      "id": "cap-login",
+      "applicationId": "app-claims-portal",
+      "businessName": "Authenticate Claims Portal Session",
+      "type": "ENTER",
+      "pageContext": "Login View",
+      "semanticDescription": "Authenticate into the Claims Portal using configured environment credentials",
+      "targetDefinition": {
+        "semanticIntent": "Login credentials and submit",
+        "visibleTextPattern": "Sign In|Log In",
+        "role": "button",
+        "controlType": "form",
+        "selectorFallback": "#login-button"
+      },
+      "inputDefinition": [
+        {
+          "name": "username",
+          "type": "CREDENTIAL_REF",
+          "required": true,
+          "description": "Refers to CLAIMS_USERNAME"
+        },
+        {
+          "name": "password",
+          "type": "CREDENTIAL_REF",
+          "required": true,
+          "description": "Refers to CLAIMS_PASSWORD"
+        }
+      ],
+      "outputDefinition": [
+        {
+          "name": "sessionState",
+          "type": "STRING",
+          "description": "AUTHENTICATED"
+        }
+      ],
+      "verificationDefinition": {
+        "expectedOutcome": "User dashboard visible and claims navigation accessible",
+        "successCondition": {
+          "statusText": "Dashboard",
+          "prohibitedErrors": [
+            "Invalid credentials",
+            "Login failed"
+          ]
+        }
+      },
+      "recoveryDefinition": {
+        "allowHumanRemapping": true,
+        "maxRetries": 2,
+        "onFailure": "STOP"
+      },
+      "riskLevel": "LOW",
+      "version": 1,
+      "isPublished": true,
+      "createdAt": "2026-09-25T17:26:33.741Z",
+      "updatedAt": "2026-09-25T17:26:33.741Z"
+    },
+    {
+      "id": "cap-open-claims",
+      "applicationId": "app-claims-portal",
+      "businessName": "Open Claims Table",
+      "type": "CLICK",
+      "pageContext": "Portal Navigation",
+      "semanticDescription": "Navigate to the active claims ledger view",
+      "targetDefinition": {
+        "semanticIntent": "Open claims table",
+        "visibleTextPattern": "Claims",
+        "role": "link",
+        "controlType": "link",
+        "selectorFallback": "nav a[href=\"#claims\"]"
+      },
+      "inputDefinition": [],
+      "outputDefinition": [
+        {
+          "name": "tableVisible",
+          "type": "BOOLEAN"
+        }
+      ],
+      "verificationDefinition": {
+        "expectedOutcome": "Claims table with patient records and actions rendered",
+        "successCondition": {
+          "statusText": "Active Claims Ledger"
+        }
+      },
+      "recoveryDefinition": {
+        "allowHumanRemapping": true,
+        "maxRetries": 1,
+        "onFailure": "STOP"
+      },
+      "riskLevel": "LOW",
+      "version": 1,
+      "isPublished": true,
+      "createdAt": "2026-09-25T17:26:33.742Z",
+      "updatedAt": "2026-09-25T17:26:33.742Z"
+    },
+    {
+      "id": "cap-filter-claims",
+      "applicationId": "app-claims-portal",
+      "businessName": "Filter Claims by Payer and Status",
+      "type": "TABLE_OPERATION",
+      "pageContext": "Claims Ledger",
+      "semanticDescription": "Filter active claims table by payer (e.g. Medicare Part A) and status (e.g. Ready)",
+      "targetDefinition": {
+        "semanticIntent": "Filter claims table rows",
+        "controlType": "table_filter",
+        "pageContext": "Claims"
+      },
+      "inputDefinition": [
+        {
+          "name": "payer",
+          "type": "STRING",
+          "required": true,
+          "defaultValue": "Medicare Part A"
+        },
+        {
+          "name": "status",
+          "type": "STRING",
+          "required": true,
+          "defaultValue": "Ready"
+        }
+      ],
+      "outputDefinition": [
+        {
+          "name": "matchedRowCount",
+          "type": "NUMBER"
+        },
+        {
+          "name": "matchedRowIds",
+          "type": "OBJECT"
+        }
+      ],
+      "verificationDefinition": {
+        "expectedOutcome": "Table view filtered to matching claims",
+        "successCondition": {
+          "statusText": "Filtered"
+        }
+      },
+      "recoveryDefinition": {
+        "allowHumanRemapping": false,
+        "maxRetries": 1,
+        "onFailure": "CONTINUE"
+      },
+      "riskLevel": "LOW",
+      "version": 1,
+      "isPublished": true,
+      "createdAt": "2026-09-25T17:26:33.742Z",
+      "updatedAt": "2026-09-25T17:26:33.742Z"
+    },
+    {
+      "id": "cap-process-claims",
+      "applicationId": "app-claims-portal",
+      "businessName": "Process Matched Claims",
+      "type": "TABLE_OPERATION",
+      "pageContext": "Claims Ledger",
+      "semanticDescription": "Iterate each matched row, execute row-level action (Send Claim), handle remappings and verify outcome",
+      "targetDefinition": {
+        "semanticIntent": "Send Claim",
+        "visibleTextPattern": "Send Claim|Submit",
+        "role": "button",
+        "controlType": "row_action",
+        "isRowAction": true
+      },
+      "inputDefinition": [
+        {
+          "name": "expectedAction",
+          "type": "STRING",
+          "required": true,
+          "defaultValue": "Send Claim"
+        }
+      ],
+      "outputDefinition": [
+        {
+          "name": "processedCount",
+          "type": "NUMBER"
+        },
+        {
+          "name": "successCount",
+          "type": "NUMBER"
+        },
+        {
+          "name": "failedCount",
+          "type": "NUMBER"
+        }
+      ],
+      "verificationDefinition": {
+        "expectedOutcome": "Claim status transitions to Sent with verified submission reference (e.g. SUB-100x)",
+        "successCondition": {
+          "statusText": "Sent",
+          "requiresReferenceNumber": true,
+          "referencePattern": "SUB-\\d+",
+          "prohibitedErrors": [
+            "Validation error",
+            "Failed to dispatch"
+          ]
+        }
+      },
+      "recoveryDefinition": {
+        "allowHumanRemapping": true,
+        "maxRetries": 2,
+        "fallbackCandidates": [
+          "Submit",
+          "Process",
+          "Dispatch"
+        ],
+        "onFailure": "CONTINUE"
+      },
+      "riskLevel": "HIGH",
+      "version": 1,
+      "isPublished": true,
+      "createdAt": "2026-09-25T17:26:33.742Z",
+      "updatedAt": "2026-09-25T17:26:33.742Z"
+    },
+    {
+      "id": "cap-extract-confirmations",
+      "applicationId": "app-claims-portal",
+      "businessName": "Extract Confirmation Numbers & Generate CSV",
+      "type": "EXTRACT",
+      "pageContext": "Claims Ledger",
+      "semanticDescription": "Extract submission reference numbers from processed claims and compile batch report",
+      "targetDefinition": {
+        "semanticIntent": "Extract reference numbers",
+        "controlType": "data_extractor"
+      },
+      "inputDefinition": [],
+      "outputDefinition": [
+        {
+          "name": "reportPath",
+          "type": "STRING"
+        },
+        {
+          "name": "rowCount",
+          "type": "NUMBER"
+        }
+      ],
+      "verificationDefinition": {
+        "expectedOutcome": "Batch CSV generated with verified row outcomes and submission references",
+        "successCondition": {
+          "statusText": "Generated"
+        }
+      },
+      "recoveryDefinition": {
+        "allowHumanRemapping": false,
+        "maxRetries": 1,
+        "onFailure": "CONTINUE"
+      },
+      "riskLevel": "LOW",
+      "version": 1,
+      "isPublished": true,
+      "createdAt": "2026-09-25T17:26:33.742Z",
+      "updatedAt": "2026-09-25T17:26:33.742Z"
+    }
+  ],
+  "flows": [
+    {
+      "id": "flow-medicare-batch",
+      "applicationId": "app-claims-portal",
+      "name": "Medicare Part A Claims Batch Processing",
+      "description": "End-to-end intent-driven flow: Login -> Open Claims -> Filter Medicare Part A (Ready) -> Process Matched Rows with outcome verification and human remapping -> Export CSV Report",
+      "status": "PRODUCTION",
+      "version": 1,
+      "latestTestStatus": "SUCCESS",
+      "failurePolicy": "CONTINUE",
+      "variables": [
+        {
+          "name": "PAYER_TARGET",
+          "type": "STRING",
+          "source": "FLOW_VARIABLE",
+          "value": "Medicare Part A"
+        },
+        {
+          "name": "STATUS_TARGET",
+          "type": "STRING",
+          "source": "FLOW_VARIABLE",
+          "value": "Ready"
+        }
+      ],
+      "nodes": [
+        {
+          "id": "node-start",
+          "type": "START",
+          "position": {
+            "x": 50,
+            "y": 150
+          },
+          "data": {
+            "label": "Start Flow",
+            "description": "Execution begins"
+          }
+        },
+        {
+          "id": "node-login",
+          "type": "CAPABILITY",
+          "position": {
+            "x": 260,
+            "y": 150
+          },
+          "data": {
+            "label": "Login Claims Portal",
+            "capabilityId": "cap-login",
+            "description": "Authenticate session with CLAIMS_USERNAME & CLAIMS_PASSWORD"
+          }
+        },
+        {
+          "id": "node-open-claims",
+          "type": "CAPABILITY",
+          "position": {
+            "x": 500,
+            "y": 150
+          },
+          "data": {
+            "label": "Open Claims Ledger",
+            "capabilityId": "cap-open-claims",
+            "description": "Navigate to active claims ledger"
+          }
+        },
+        {
+          "id": "node-filter-claims",
+          "type": "TABLE_PROCESS",
+          "position": {
+            "x": 740,
+            "y": 150
+          },
+          "data": {
+            "label": "Filter Medicare Part A",
+            "capabilityId": "cap-filter-claims",
+            "description": "Filter Payer = Medicare Part A & Status = Ready",
+            "filterConfig": {
+              "table": "Claims",
+              "conditions": [
+                {
+                  "column": "Payer",
+                  "operator": "EQUALS",
+                  "value": "Medicare Part A"
+                },
+                {
+                  "column": "Status",
+                  "operator": "EQUALS",
+                  "value": "Ready"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "node-process-claims",
+          "type": "TABLE_PROCESS",
+          "position": {
+            "x": 990,
+            "y": 150
+          },
+          "data": {
+            "label": "Process Matched Claims",
+            "capabilityId": "cap-process-claims",
+            "description": "Execute row-level Send Claim with outcome verification and human remapping",
+            "rowActionCapabilityId": "cap-process-claims",
+            "failurePolicy": "CONTINUE"
+          }
+        },
+        {
+          "id": "node-extract-report",
+          "type": "CAPABILITY",
+          "position": {
+            "x": 1240,
+            "y": 150
+          },
+          "data": {
+            "label": "Generate Batch CSV",
+            "capabilityId": "cap-extract-confirmations",
+            "description": "Compile verified outcomes into audit-ready CSV report"
+          }
+        },
+        {
+          "id": "node-end",
+          "type": "END",
+          "position": {
+            "x": 1480,
+            "y": 150
+          },
+          "data": {
+            "label": "End Flow",
+            "description": "Audit report produced"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e1",
+          "source": "node-start",
+          "target": "node-login"
+        },
+        {
+          "id": "e2",
+          "source": "node-login",
+          "target": "node-open-claims"
+        },
+        {
+          "id": "e3",
+          "source": "node-open-claims",
+          "target": "node-filter-claims"
+        },
+        {
+          "id": "e4",
+          "source": "node-filter-claims",
+          "target": "node-process-claims"
+        },
+        {
+          "id": "e5",
+          "source": "node-process-claims",
+          "target": "node-extract-report"
+        },
+        {
+          "id": "e6",
+          "source": "node-extract-report",
+          "target": "node-end"
+        }
+      ],
+      "createdAt": "2026-09-25T17:26:33.742Z",
+      "updatedAt": "2026-09-25T17:27:15.261Z"
+    }
+  ],
+  "executions": [
+    {
+      "id": "EXEC-356305",
+      "flowId": "flow-medicare-batch",
+      "flowName": "Medicare Part A Claims Batch Processing",
+      "applicationId": "app-claims-portal",
+      "applicationName": "Claims Portal",
+      "applicationSessionId": "SESS-FLOW-5c73ccae",
+      "status": "COMPLETED",
+      "mode": "RUN",
+      "startedAt": "2026-09-25T17:29:16.305Z",
+      "matchedCount": 3,
+      "processedCount": 3,
+      "successCount": 3,
+      "failedCount": 0,
+      "skippedCount": 0,
+      "recoveryCount": 0,
+      "remappingCount": 0,
+      "interventionCount": 0,
+      "steps": [
+        {
+          "id": "STEP-331bb2ca",
+          "executionId": "EXEC-356305",
+          "capabilityId": "cap-login",
+          "stepIndex": 1,
+          "stepName": "Login Claims Portal",
+          "status": "SUCCESS",
+          "inputData": {},
+          "outputData": {
+            "sessionState": "AUTHENTICATED",
+            "user": "admin@claims-portal.internal"
+          },
+          "startedAt": "2026-09-25T17:29:16.307Z",
+          "verificationState": "PASSED",
+          "completedAt": "2026-09-25T17:29:16.308Z",
+          "durationMs": 450
+        },
+        {
+          "id": "STEP-de43071e",
+          "executionId": "EXEC-356305",
+          "capabilityId": "cap-open-claims",
+          "stepIndex": 2,
+          "stepName": "Open Claims Ledger",
+          "status": "SUCCESS",
+          "inputData": {},
+          "outputData": {
+            "tableFound": true,
+            "rows": 5
+          },
+          "startedAt": "2026-09-25T17:29:16.308Z",
+          "verificationState": "PASSED",
+          "completedAt": "2026-09-25T17:29:16.309Z",
+          "durationMs": 320
+        },
+        {
+          "id": "STEP-51895e13",
+          "executionId": "EXEC-356305",
+          "capabilityId": "cap-filter-claims",
+          "stepIndex": 3,
+          "stepName": "Filter Medicare Part A",
+          "status": "SUCCESS",
+          "inputData": {},
+          "outputData": {
+            "totalTableRows": 5,
+            "matchedRowCount": 3,
+            "matchedRowIds": [
+              "C001",
+              "C003",
+              "C005"
+            ]
+          },
+          "startedAt": "2026-09-25T17:29:16.309Z",
+          "verificationState": "PASSED",
+          "completedAt": "2026-09-25T17:29:16.310Z",
+          "durationMs": 180
+        },
+        {
+          "id": "STEP-567340c1",
+          "executionId": "EXEC-356305",
+          "capabilityId": "cap-process-claims",
+          "stepIndex": 4,
+          "stepName": "Process Matched Claims",
+          "status": "SUCCESS",
+          "inputData": {},
+          "outputData": {
+            "processed": 3,
+            "success": 3,
+            "failed": 0
+          },
+          "startedAt": "2026-09-25T17:29:16.310Z",
+          "verificationState": "PASSED",
+          "completedAt": "2026-09-25T17:29:16.314Z",
+          "durationMs": 3
+        },
+        {
+          "id": "STEP-8248bd35",
+          "executionId": "EXEC-356305",
+          "capabilityId": "cap-extract-confirmations",
+          "stepIndex": 5,
+          "stepName": "Generate Batch CSV",
+          "status": "SUCCESS",
+          "inputData": {},
+          "outputData": {
+            "reportId": "REP-1790357356315",
+            "fileName": "claims_execution_EXEC-356305.csv",
+            "rowCount": 3
+          },
+          "startedAt": "2026-09-25T17:29:16.314Z",
+          "verificationState": "PASSED",
+          "completedAt": "2026-09-25T17:29:16.315Z",
+          "durationMs": 210
+        }
+      ],
+      "rowResults": [
+        {
+          "executionId": "EXEC-356305",
+          "flowId": "flow-medicare-batch",
+          "capabilityId": "cap-process-claims",
+          "applicationId": "app-claims-portal",
+          "sessionId": "SESS-FLOW-5c73ccae",
+          "rowId": "C001",
+          "claimId": "C001",
+          "payer": "Medicare Part A",
+          "initialStatus": "Ready",
+          "finalStatus": "Sent",
+          "result": "SUCCESS",
+          "verificationResult": "PASSED",
+          "recoveryAttempted": false,
+          "remappingRequired": false,
+          "remappingConfirmed": false,
+          "startedAt": "2026-09-25T17:29:16.310Z",
+          "completedAt": "2026-09-25T17:29:16.312Z",
+          "durationMs": 2,
+          "referenceNumber": "SUB-1001"
+        },
+        {
+          "executionId": "EXEC-356305",
+          "flowId": "flow-medicare-batch",
+          "capabilityId": "cap-process-claims",
+          "applicationId": "app-claims-portal",
+          "sessionId": "SESS-FLOW-5c73ccae",
+          "rowId": "C003",
+          "claimId": "C003",
+          "payer": "Medicare Part A",
+          "initialStatus": "Ready",
+          "finalStatus": "Sent",
+          "result": "SUCCESS",
+          "verificationResult": "PASSED",
+          "recoveryAttempted": false,
+          "remappingRequired": false,
+          "remappingConfirmed": false,
+          "startedAt": "2026-09-25T17:29:16.312Z",
+          "completedAt": "2026-09-25T17:29:16.313Z",
+          "durationMs": 1,
+          "referenceNumber": "SUB-1003"
+        },
+        {
+          "executionId": "EXEC-356305",
+          "flowId": "flow-medicare-batch",
+          "capabilityId": "cap-process-claims",
+          "applicationId": "app-claims-portal",
+          "sessionId": "SESS-FLOW-5c73ccae",
+          "rowId": "C005",
+          "claimId": "C005",
+          "payer": "Medicare Part A",
+          "initialStatus": "Ready",
+          "finalStatus": "Sent",
+          "result": "SUCCESS",
+          "verificationResult": "PASSED",
+          "recoveryAttempted": false,
+          "remappingRequired": false,
+          "remappingConfirmed": false,
+          "startedAt": "2026-09-25T17:29:16.314Z",
+          "completedAt": "2026-09-25T17:29:16.314Z",
+          "durationMs": 0,
+          "referenceNumber": "SUB-1005"
+        }
+      ],
+      "interventions": [],
+      "csvReportPath": "/api/reports/EXEC-356305/csv",
+      "completedAt": "2026-09-25T17:29:16.316Z",
+      "durationMs": 11
+    },
+    {
+      "id": "EXEC-235259",
+      "flowId": "flow-medicare-batch",
+      "flowName": "Medicare Part A Claims Batch Processing",
+      "applicationId": "app-claims-portal",
+      "applicationName": "Claims Portal",
+      "applicationSessionId": "SESS-FLOW-9cf98c60",
+      "status": "COMPLETED",
+      "mode": "TEST",
+      "startedAt": "2026-09-25T17:27:15.259Z",
+      "matchedCount": 3,
+      "processedCount": 3,
+      "successCount": 2,
+      "failedCount": 1,
+      "skippedCount": 0,
+      "recoveryCount": 0,
+      "remappingCount": 0,
+      "interventionCount": 0,
+      "steps": [
+        {
+          "id": "STEP-4c5dd69e",
+          "executionId": "EXEC-235259",
+          "capabilityId": "cap-login",
+          "stepIndex": 1,
+          "stepName": "Login Claims Portal",
+          "status": "SUCCESS",
+          "inputData": {},
+          "outputData": {
+            "sessionState": "AUTHENTICATED",
+            "user": "admin@claims-portal.internal"
+          },
+          "startedAt": "2026-09-25T17:27:15.259Z",
+          "verificationState": "PASSED",
+          "completedAt": "2026-09-25T17:27:15.259Z",
+          "durationMs": 450
+        },
+        {
+          "id": "STEP-07aa2e63",
+          "executionId": "EXEC-235259",
+          "capabilityId": "cap-open-claims",
+          "stepIndex": 2,
+          "stepName": "Open Claims Ledger",
+          "status": "SUCCESS",
+          "inputData": {},
+          "outputData": {
+            "tableFound": true,
+            "rows": 5
+          },
+          "startedAt": "2026-09-25T17:27:15.259Z",
+          "verificationState": "PASSED",
+          "completedAt": "2026-09-25T17:27:15.259Z",
+          "durationMs": 320
+        },
+        {
+          "id": "STEP-b8f9df7e",
+          "executionId": "EXEC-235259",
+          "capabilityId": "cap-filter-claims",
+          "stepIndex": 3,
+          "stepName": "Filter Medicare Part A",
+          "status": "SUCCESS",
+          "inputData": {},
+          "outputData": {
+            "totalTableRows": 5,
+            "matchedRowCount": 3,
+            "matchedRowIds": [
+              "C001",
+              "C003",
+              "C005"
+            ]
+          },
+          "startedAt": "2026-09-25T17:27:15.260Z",
+          "verificationState": "PASSED",
+          "completedAt": "2026-09-25T17:27:15.260Z",
+          "durationMs": 180
+        },
+        {
+          "id": "STEP-341dcf55",
+          "executionId": "EXEC-235259",
+          "capabilityId": "cap-process-claims",
+          "stepIndex": 4,
+          "stepName": "Process Matched Claims",
+          "status": "FAILED",
+          "inputData": {},
+          "outputData": {
+            "processed": 3,
+            "success": 2,
+            "failed": 1
+          },
+          "startedAt": "2026-09-25T17:27:15.260Z",
+          "verificationState": "FAILED",
+          "completedAt": "2026-09-25T17:27:15.261Z",
+          "durationMs": 0
+        },
+        {
+          "id": "STEP-cb1b3e07",
+          "executionId": "EXEC-235259",
+          "capabilityId": "cap-extract-confirmations",
+          "stepIndex": 5,
+          "stepName": "Generate Batch CSV",
+          "status": "SUCCESS",
+          "inputData": {},
+          "outputData": {
+            "reportId": "REP-1790357235261",
+            "fileName": "claims_execution_EXEC-235259.csv",
+            "rowCount": 3
+          },
+          "startedAt": "2026-09-25T17:27:15.261Z",
+          "verificationState": "PASSED",
+          "completedAt": "2026-09-25T17:27:15.261Z",
+          "durationMs": 210
+        }
+      ],
+      "rowResults": [
+        {
+          "executionId": "EXEC-235259",
+          "flowId": "flow-medicare-batch",
+          "capabilityId": "cap-process-claims",
+          "applicationId": "app-claims-portal",
+          "sessionId": "SESS-FLOW-9cf98c60",
+          "rowId": "C001",
+          "claimId": "C001",
+          "payer": "Medicare Part A",
+          "initialStatus": "Ready",
+          "finalStatus": "Sent",
+          "result": "SUCCESS",
+          "verificationResult": "PASSED",
+          "recoveryAttempted": false,
+          "remappingRequired": false,
+          "remappingConfirmed": false,
+          "startedAt": "2026-09-25T17:27:15.260Z",
+          "completedAt": "2026-09-25T17:27:15.260Z",
+          "durationMs": 0,
+          "referenceNumber": "SUB-1001"
+        },
+        {
+          "executionId": "EXEC-235259",
+          "flowId": "flow-medicare-batch",
+          "capabilityId": "cap-process-claims",
+          "applicationId": "app-claims-portal",
+          "sessionId": "SESS-FLOW-9cf98c60",
+          "rowId": "C003",
+          "claimId": "C003",
+          "payer": "Medicare Part A",
+          "initialStatus": "Ready",
+          "finalStatus": "Sent",
+          "result": "SUCCESS",
+          "verificationResult": "PASSED",
+          "recoveryAttempted": false,
+          "remappingRequired": false,
+          "remappingConfirmed": false,
+          "startedAt": "2026-09-25T17:27:15.260Z",
+          "completedAt": "2026-09-25T17:27:15.260Z",
+          "durationMs": 0,
+          "referenceNumber": "SUB-1003"
+        },
+        {
+          "executionId": "EXEC-235259",
+          "flowId": "flow-medicare-batch",
+          "capabilityId": "cap-process-claims",
+          "applicationId": "app-claims-portal",
+          "sessionId": "SESS-FLOW-9cf98c60",
+          "rowId": "C005",
+          "claimId": "C005",
+          "payer": "Medicare Part A",
+          "initialStatus": "Ready",
+          "finalStatus": "Ready",
+          "result": "FAILED",
+          "verificationResult": "FAILED",
+          "recoveryAttempted": false,
+          "remappingRequired": false,
+          "remappingConfirmed": false,
+          "startedAt": "2026-09-25T17:27:15.260Z",
+          "completedAt": "2026-09-25T17:27:15.260Z",
+          "durationMs": 0,
+          "errorMessage": "Business outcome failed: Prohibited error condition matched: \"Validation error\" in application response"
+        }
+      ],
+      "interventions": [],
+      "csvReportPath": "/api/reports/EXEC-235259/csv",
+      "completedAt": "2026-09-25T17:27:15.261Z",
+      "durationMs": 2
+    },
+    {
+      "id": "EXEC-204908",
+      "flowId": "flow-medicare-batch",
+      "flowName": "Medicare Part A Claims Batch Processing",
+      "applicationId": "app-claims-portal",
+      "applicationName": "Claims Portal",
+      "applicationSessionId": "SESS-FLOW-8599371a",
+      "status": "COMPLETED",
+      "mode": "TEST",
+      "startedAt": "2026-09-25T17:26:44.908Z",
+      "matchedCount": 3,
+      "processedCount": 3,
+      "successCount": 3,
+      "failedCount": 0,
+      "skippedCount": 0,
+      "recoveryCount": 0,
+      "remappingCount": 0,
+      "interventionCount": 0,
+      "steps": [
+        {
+          "id": "STEP-cfcff462",
+          "executionId": "EXEC-204908",
+          "capabilityId": "cap-login",
+          "stepIndex": 1,
+          "stepName": "Login Claims Portal",
+          "status": "SUCCESS",
+          "inputData": {},
+          "outputData": {
+            "sessionState": "AUTHENTICATED",
+            "user": "admin@claims-portal.internal"
+          },
+          "startedAt": "2026-09-25T17:26:44.909Z",
+          "verificationState": "PASSED",
+          "completedAt": "2026-09-25T17:26:44.909Z",
+          "durationMs": 450
+        },
+        {
+          "id": "STEP-7acdb453",
+          "executionId": "EXEC-204908",
+          "capabilityId": "cap-open-claims",
+          "stepIndex": 2,
+          "stepName": "Open Claims Ledger",
+          "status": "SUCCESS",
+          "inputData": {},
+          "outputData": {
+            "tableFound": true,
+            "rows": 5
+          },
+          "startedAt": "2026-09-25T17:26:44.909Z",
+          "verificationState": "PASSED",
+          "completedAt": "2026-09-25T17:26:44.910Z",
+          "durationMs": 320
+        },
+        {
+          "id": "STEP-0f8068ec",
+          "executionId": "EXEC-204908",
+          "capabilityId": "cap-filter-claims",
+          "stepIndex": 3,
+          "stepName": "Filter Medicare Part A",
+          "status": "SUCCESS",
+          "inputData": {},
+          "outputData": {
+            "totalTableRows": 5,
+            "matchedRowCount": 3,
+            "matchedRowIds": [
+              "C001",
+              "C003",
+              "C005"
+            ]
+          },
+          "startedAt": "2026-09-25T17:26:44.910Z",
+          "verificationState": "PASSED",
+          "completedAt": "2026-09-25T17:26:44.910Z",
+          "durationMs": 180
+        },
+        {
+          "id": "STEP-e21c0989",
+          "executionId": "EXEC-204908",
+          "capabilityId": "cap-process-claims",
+          "stepIndex": 4,
+          "stepName": "Process Matched Claims",
+          "status": "SUCCESS",
+          "inputData": {},
+          "outputData": {
+            "processed": 3,
+            "success": 3,
+            "failed": 0
+          },
+          "startedAt": "2026-09-25T17:26:44.910Z",
+          "verificationState": "PASSED",
+          "completedAt": "2026-09-25T17:26:44.912Z",
+          "durationMs": 2
+        },
+        {
+          "id": "STEP-91480e5d",
+          "executionId": "EXEC-204908",
+          "capabilityId": "cap-extract-confirmations",
+          "stepIndex": 5,
+          "stepName": "Generate Batch CSV",
+          "status": "SUCCESS",
+          "inputData": {},
+          "outputData": {
+            "reportId": "REP-1790357204913",
+            "fileName": "claims_execution_EXEC-204908.csv",
+            "rowCount": 3
+          },
+          "startedAt": "2026-09-25T17:26:44.913Z",
+          "verificationState": "PASSED",
+          "completedAt": "2026-09-25T17:26:44.913Z",
+          "durationMs": 210
+        }
+      ],
+      "rowResults": [
+        {
+          "executionId": "EXEC-204908",
+          "flowId": "flow-medicare-batch",
+          "capabilityId": "cap-process-claims",
+          "applicationId": "app-claims-portal",
+          "sessionId": "SESS-FLOW-8599371a",
+          "rowId": "C001",
+          "claimId": "C001",
+          "payer": "Medicare Part A",
+          "initialStatus": "Ready",
+          "finalStatus": "Sent",
+          "result": "SUCCESS",
+          "verificationResult": "PASSED",
+          "recoveryAttempted": false,
+          "remappingRequired": false,
+          "remappingConfirmed": false,
+          "startedAt": "2026-09-25T17:26:44.910Z",
+          "completedAt": "2026-09-25T17:26:44.911Z",
+          "durationMs": 1,
+          "referenceNumber": "SUB-1001"
+        },
+        {
+          "executionId": "EXEC-204908",
+          "flowId": "flow-medicare-batch",
+          "capabilityId": "cap-process-claims",
+          "applicationId": "app-claims-portal",
+          "sessionId": "SESS-FLOW-8599371a",
+          "rowId": "C003",
+          "claimId": "C003",
+          "payer": "Medicare Part A",
+          "initialStatus": "Ready",
+          "finalStatus": "Sent",
+          "result": "SUCCESS",
+          "verificationResult": "PASSED",
+          "recoveryAttempted": false,
+          "remappingRequired": false,
+          "remappingConfirmed": false,
+          "startedAt": "2026-09-25T17:26:44.911Z",
+          "completedAt": "2026-09-25T17:26:44.912Z",
+          "durationMs": 1,
+          "referenceNumber": "SUB-1003"
+        },
+        {
+          "executionId": "EXEC-204908",
+          "flowId": "flow-medicare-batch",
+          "capabilityId": "cap-process-claims",
+          "applicationId": "app-claims-portal",
+          "sessionId": "SESS-FLOW-8599371a",
+          "rowId": "C005",
+          "claimId": "C005",
+          "payer": "Medicare Part A",
+          "initialStatus": "Ready",
+          "finalStatus": "Sent",
+          "result": "SUCCESS",
+          "verificationResult": "PASSED",
+          "recoveryAttempted": false,
+          "remappingRequired": false,
+          "remappingConfirmed": false,
+          "startedAt": "2026-09-25T17:26:44.912Z",
+          "completedAt": "2026-09-25T17:26:44.912Z",
+          "durationMs": 0,
+          "referenceNumber": "SUB-1005"
+        }
+      ],
+      "interventions": [],
+      "csvReportPath": "/api/reports/EXEC-204908/csv",
+      "completedAt": "2026-09-25T17:26:44.913Z",
+      "durationMs": 5
+    }
+  ],
+  "experience": [
+    {
+      "id": "exp-submit-to-send",
+      "applicationId": "app-claims-portal",
+      "capabilityId": "cap-process-claims",
+      "pageContext": "Claims Ledger Table Row",
+      "originalTarget": "Send Claim",
+      "resolvedTarget": "Submit",
+      "resolutionMethod": "HUMAN_CONFIRMATION",
+      "confidence": 0.92,
+      "successCount": 4,
+      "failureCount": 0,
+      "isEnabled": true,
+      "lastVerifiedAt": "2026-09-25T17:26:33.742Z",
+      "createdAt": "2026-09-25T17:26:33.742Z",
+      "updatedAt": "2026-09-25T17:26:33.742Z"
+    }
+  ],
+  "reports": [
+    {
+      "id": "REP-1790357356315",
+      "executionId": "EXEC-356305",
+      "fileName": "claims_execution_EXEC-356305.csv",
+      "csvContent": "execution_id,flow_id,capability_id,application_id,session_id,row_id,claim_id,payer,initial_status,final_status,result,verification_result,recovery_attempted,recovery_result,remapping_required,remapping_confirmed,reference_number,error_code,error_message,started_at,completed_at,duration_ms\nEXEC-356305,flow-medicare-batch,cap-process-claims,app-claims-portal,SESS-FLOW-5c73ccae,C001,C001,\"Medicare Part A\",Ready,Sent,SUCCESS,PASSED,FALSE,NONE,FALSE,FALSE,SUB-1001,,\"\",2026-09-25T17:29:16.310Z,2026-09-25T17:29:16.312Z,2\nEXEC-356305,flow-medicare-batch,cap-process-claims,app-claims-portal,SESS-FLOW-5c73ccae,C003,C003,\"Medicare Part A\",Ready,Sent,SUCCESS,PASSED,FALSE,NONE,FALSE,FALSE,SUB-1003,,\"\",2026-09-25T17:29:16.312Z,2026-09-25T17:29:16.313Z,1\nEXEC-356305,flow-medicare-batch,cap-process-claims,app-claims-portal,SESS-FLOW-5c73ccae,C005,C005,\"Medicare Part A\",Ready,Sent,SUCCESS,PASSED,FALSE,NONE,FALSE,FALSE,SUB-1005,,\"\",2026-09-25T17:29:16.314Z,2026-09-25T17:29:16.314Z,0",
+      "summary": {
+        "executionId": "EXEC-356305",
+        "totalMatched": 3,
+        "processed": 3,
+        "successful": 3,
+        "failed": 0,
+        "skipped": 0,
+        "recoverySuccessful": 0,
+        "remappingRequired": 0,
+        "remappingConfirmed": 0,
+        "humanInterventions": 0,
+        "durationMs": 0
+      },
+      "createdAt": "2026-09-25T17:29:16.315Z"
+    },
+    {
+      "id": "REP-1790357235261",
+      "executionId": "EXEC-235259",
+      "fileName": "claims_execution_EXEC-235259.csv",
+      "csvContent": "execution_id,flow_id,capability_id,application_id,session_id,row_id,claim_id,payer,initial_status,final_status,result,verification_result,recovery_attempted,recovery_result,remapping_required,remapping_confirmed,reference_number,error_code,error_message,started_at,completed_at,duration_ms\nEXEC-235259,flow-medicare-batch,cap-process-claims,app-claims-portal,SESS-FLOW-9cf98c60,C001,C001,\"Medicare Part A\",Ready,Sent,SUCCESS,PASSED,FALSE,NONE,FALSE,FALSE,SUB-1001,,\"\",2026-09-25T17:27:15.260Z,2026-09-25T17:27:15.260Z,0\nEXEC-235259,flow-medicare-batch,cap-process-claims,app-claims-portal,SESS-FLOW-9cf98c60,C003,C003,\"Medicare Part A\",Ready,Sent,SUCCESS,PASSED,FALSE,NONE,FALSE,FALSE,SUB-1003,,\"\",2026-09-25T17:27:15.260Z,2026-09-25T17:27:15.260Z,0\nEXEC-235259,flow-medicare-batch,cap-process-claims,app-claims-portal,SESS-FLOW-9cf98c60,C005,C005,\"Medicare Part A\",Ready,Ready,FAILED,FAILED,FALSE,NONE,FALSE,FALSE,,,\"Business outcome failed: Prohibited error condition matched: \"\"Validation error\"\" in application response\",2026-09-25T17:27:15.260Z,2026-09-25T17:27:15.260Z,0",
+      "summary": {
+        "executionId": "EXEC-235259",
+        "totalMatched": 3,
+        "processed": 3,
+        "successful": 2,
+        "failed": 1,
+        "skipped": 0,
+        "recoverySuccessful": 0,
+        "remappingRequired": 0,
+        "remappingConfirmed": 0,
+        "humanInterventions": 0,
+        "durationMs": 0
+      },
+      "createdAt": "2026-09-25T17:27:15.261Z"
+    },
+    {
+      "id": "REP-1790357204913",
+      "executionId": "EXEC-204908",
+      "fileName": "claims_execution_EXEC-204908.csv",
+      "csvContent": "execution_id,flow_id,capability_id,application_id,session_id,row_id,claim_id,payer,initial_status,final_status,result,verification_result,recovery_attempted,recovery_result,remapping_required,remapping_confirmed,reference_number,error_code,error_message,started_at,completed_at,duration_ms\nEXEC-204908,flow-medicare-batch,cap-process-claims,app-claims-portal,SESS-FLOW-8599371a,C001,C001,\"Medicare Part A\",Ready,Sent,SUCCESS,PASSED,FALSE,NONE,FALSE,FALSE,SUB-1001,,\"\",2026-09-25T17:26:44.910Z,2026-09-25T17:26:44.911Z,1\nEXEC-204908,flow-medicare-batch,cap-process-claims,app-claims-portal,SESS-FLOW-8599371a,C003,C003,\"Medicare Part A\",Ready,Sent,SUCCESS,PASSED,FALSE,NONE,FALSE,FALSE,SUB-1003,,\"\",2026-09-25T17:26:44.911Z,2026-09-25T17:26:44.912Z,1\nEXEC-204908,flow-medicare-batch,cap-process-claims,app-claims-portal,SESS-FLOW-8599371a,C005,C005,\"Medicare Part A\",Ready,Sent,SUCCESS,PASSED,FALSE,NONE,FALSE,FALSE,SUB-1005,,\"\",2026-09-25T17:26:44.912Z,2026-09-25T17:26:44.912Z,0",
+      "summary": {
+        "executionId": "EXEC-204908",
+        "totalMatched": 3,
+        "processed": 3,
+        "successful": 3,
+        "failed": 0,
+        "skipped": 0,
+        "recoverySuccessful": 0,
+        "remappingRequired": 0,
+        "remappingConfirmed": 0,
+        "humanInterventions": 0,
+        "durationMs": 0
+      },
+      "createdAt": "2026-09-25T17:26:44.913Z"
+    }
+  ],
+  "buildSessions": [
+    {
+      "id": "build-sess-263287",
+      "workflowName": "",
+      "description": "",
+      "applicationId": "",
+      "currentState": "ASK_WORKFLOW_NAME",
+      "confirmedCapabilities": [],
+      "confirmedSteps": [],
+      "variables": {},
+      "messages": [
+        {
+          "id": "msg-5d41ddd3",
+          "sender": "agent",
+          "text": "Welcome to Intent Automation Agent.\n\nI'm your conversational workflow engineer. I'll guide you through teaching me a reusable business workflow step-by-step from live application observation.\n\nWhat workflow would you like to build?",
+          "options": [
+            {
+              "id": "opt-medicare",
+              "label": "Process Medicare Part A claims",
+              "type": "primary"
+            },
+            {
+              "id": "opt-invoice",
+              "label": "Process Pending Invoices",
+              "type": "secondary"
+            },
+            {
+              "id": "opt-user-prov",
+              "label": "Enterprise User Account Provisioning",
+              "type": "secondary"
+            }
+          ],
+          "timestamp": "2026-09-25T17:44:23.287Z"
+        }
+      ],
+      "createdAt": "2026-09-25T17:44:23.287Z",
+      "updatedAt": "2026-09-25T17:44:23.287Z"
+    }
+  ]
+}
